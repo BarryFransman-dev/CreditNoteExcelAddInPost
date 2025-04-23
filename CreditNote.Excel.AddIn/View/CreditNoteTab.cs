@@ -1,4 +1,5 @@
 ﻿using CreditNote.Excel.AddIn;
+using CreditNote.Excel.AddIn.Model;
 using CreditNote.ExcelAddIn.Models;
 using CreditNote.Repository;
 using Microsoft.Office.Interop.Excel;
@@ -97,22 +98,27 @@ namespace CreditNote.Excel.AddIn
 
                 if (exData.Count() > 0)
                 {
-                    //Create purchase order
-                    //var poResult = sysproRepository.PostPO(exData, sysId);
-                    //if (poResult.HasErrors)
-                    //{
-                    //    ResetCursor();
-                    //    MessageBox.Show(poResult.Errors, "Post Purchase Order");
-                    //    return;
-                    //} 
-                    
+                    //Create credit note
+                    var cnResult = sysproRepository.PostCreditNote(ebCustCode.Text, ebCustPO.Text, exData, sysId);
+                    if (cnResult.Item1 != null && cnResult.Item1.HasErrors)
+                    {
+                        ResetCursor();
+                        MessageBox.Show(cnResult.Item1.Errors, "Post Credit Note Header");
+                        return;
+                    }
 
-                    //ebSO.Text = soResult.Items.FirstOrDefault()?.SalesOrder;
+                    if (cnResult.Item2.HasErrors)
+                    {
+                        ResetCursor();
+                        MessageBox.Show(cnResult.Item2.Errors, "Post Credit Note Lines");
+                        return;
+                    }
 
+                    ebSO.Text = cnResult.Item3;
                 }
 
                 ResetCursor();
-                MessageBox.Show("Posting Complete - Purchase Order and Sales Order created.", "POST", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Posting Complete - Credit Note created.", "POST", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
@@ -144,15 +150,20 @@ namespace CreditNote.Excel.AddIn
                 {
                     foreach (Range row in area.Rows)
                     {
-                        if (((Range)area[row.Row, 1]).Value2 == null | ((Range)area[row.Row, 1]).Value2 == "StockCode")
+                        if (((Range)area[row.Row, 1]).Value2 == null | ((Range)area[row.Row, 1]).Value2 == "Non-Stocked Code")
                         {
                             continue;
                         }
-                        if ((area[row.Row, 1].Value).ToString() != "" && ((decimal?)area[row.Row, 3].Value) > 0)
+                        if ((area[row.Row, 1].Value).ToString() != "" && ((decimal)area[row.Row, 6].Value) > 0)
                         {
                             eData.StockCode = area[row.Row, 1].Value;
-                            eData.Quantity = (decimal?)area[row.Row, 3].Value;
-                            eData.DueDate = area[3, 2].Value;
+                            eData.Description = area[row.Row, 2].Value;
+                            eData.Quantity = (decimal)area[row.Row, 6].Value;
+                            eData.Price = (decimal)area[row.Row, 7].Value;
+                            eData.CreditReason = area[row.Row, 8].Value;
+                            eData.ProductClass = area[row.Row, 9].Value;
+                            eData.TaxCode = area[row.Row, 10].Value;
+
                             leData.Add(eData);
                             eData = new ExcelData();
                         }
@@ -201,6 +212,22 @@ namespace CreditNote.Excel.AddIn
                 sysId = SysproIdentity.Current;
                 lblUser.Label = "User: " + SysproIdentity.Current.Profile.OperatorName;
                 lblCompany.Label = "Company: " + SysproIdentity.Current.Profile.Company;
+
+                var ds = sqlRepository.Get<ArCustomer>(sysId.Profile.Company);
+
+                cbCustomer.Items.Clear();
+                cbCustomer.Text = "Loading...";
+
+                foreach (var customer in ds)
+                {
+                    RibbonDropDownItem item = Globals.Factory.GetRibbonFactory().CreateRibbonDropDownItem();
+                    item.Label = $"{customer.Name} | {customer.Customer}";
+                    item.Tag = customer.Customer; // Optional: keep Code separate for logic
+                    cbCustomer.Items.Add(item);
+                }
+
+                cbCustomer.Text = string.Empty;
+                ebCustCode.Text = string.Empty;
             }
             catch (Exception ex)
             {
@@ -216,6 +243,13 @@ namespace CreditNote.Excel.AddIn
         private void SendEMail(int mailID, string message, string routine, string[,] att = null)
         {
             //CustomEmail.SendMail(mailID, routine + Environment.NewLine + "Detail:" + Environment.NewLine + message);
+        }
+
+        private void cbCustomer_TextChanged(object sender, RibbonControlEventArgs e)
+        {
+            var splitText = cbCustomer.Text.Split('|');
+            cbCustomer.Text = splitText[0].Trim();
+            ebCustCode.Text = splitText[1].Trim();
         }
     }
 }

@@ -11,8 +11,16 @@ namespace CreditNote.ExcelAddIn.Models
     {
         public string StockCode { get; set; }
 
-        public decimal? Quantity { get; set; }
+        public string Description { get; set; }
 
-        public DateTime DueDate { get; set; }
+        public string CreditReason { get; set; }
+
+        public string ProductClass { get; set; }
+
+        public string TaxCode { get; set; }
+
+        public decimal Quantity { get; set; }
+
+        public decimal Price { get; set; }
     }
 }

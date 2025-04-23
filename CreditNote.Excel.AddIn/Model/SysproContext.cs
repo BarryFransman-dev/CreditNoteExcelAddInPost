@@ -1,5 +1,6 @@
 namespace CreditNote.ExcelAddIn.Models
 {
+    using CreditNote.Excel.AddIn.Model;
     using CreditNote.Repository;
     using SigmaCape.Business.Syspro;
     using System.Data.Entity;
@@ -30,7 +31,7 @@ namespace CreditNote.ExcelAddIn.Models
 
         #region Public Properties
 
-
+        public DbSet<ArCustomer> ArCustomer { get; set; }
 
         #endregion
 

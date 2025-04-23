@@ -5,7 +5,8 @@ namespace CreditNote.ExcelAddIn.Models
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Linq;
     using SigmaCape.Business.Syspro;
-    
+    using CreditNote.Excel.AddIn.Model;
+
     public partial class SysprodbContext : DbContext
     {
         static SysprodbContext()
